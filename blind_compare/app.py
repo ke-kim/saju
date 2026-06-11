@@ -22,7 +22,7 @@ import streamlit as st
 # ─── 설정 ────────────────────────────────────────────────────────────────────
 
 # Claude 크레딧 충전 후 True 로 변경
-CLAUDE_ENABLED = False
+CLAUDE_ENABLED = True
 
 MODEL_KEYS = ["claude", "gemini", "gpt"]
 
@@ -1027,19 +1027,65 @@ def main():
 
     if st.button("모델 3개에 동시 요청", type="primary", use_container_width=True):
         reset_run()
-        with st.spinner("동시 호출 중..."):
-            results = run_all_models(active_tier, system_prompt, user_prompt,
-                                     api_keys, temperature)
         order = MODEL_KEYS.copy()
         random.shuffle(order)
-        st.session_state.results           = results
-        st.session_state.model_order       = order
-        st.session_state.ran               = True
-        st.session_state.last_tier         = tier_key
-        st.session_state.last_sys_prompt   = system_prompt
-        st.session_state.last_user_prompt  = user_prompt
+        st.session_state.model_order      = order
+        st.session_state.ran              = True
+        st.session_state.last_tier        = tier_key
+        st.session_state.last_sys_prompt  = system_prompt
+        st.session_state.last_user_prompt = user_prompt
 
-    # ── 출력 & 평가/결과 ──────────────────────────────────────────────────
+        labels = ["A", "B", "C"]
+        st.divider()
+        cols = st.columns(3)
+        spinners: dict   = {}
+        containers: dict = {}
+        for col, label in zip(cols, labels):
+            with col:
+                st.subheader(f"후보 {label}")
+                spinners[label]   = st.empty()
+                spinners[label].info("⏳ 호출 중...")
+                containers[label] = st.container()
+
+        def _call(mk: str):
+            if mk == "claude" and not CLAUDE_ENABLED:
+                return mk, ModelResult(error="Claude 비활성화 — CLAUDE_ENABLED = True 로 변경")
+            key = api_keys.get(mk, "")
+            if not key:
+                return mk, ModelResult(error="API 키 없음")
+            info = active_tier[mk]
+            return mk, CALLERS[mk](
+                info["id"], system_prompt, user_prompt, key, temperature,
+                info["price_in"], info["price_out"],
+            )
+
+        results: dict[str, ModelResult] = {}
+        with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
+            futures = {executor.submit(_call, mk): mk for mk in MODEL_KEYS}
+            for future in concurrent.futures.as_completed(futures):
+                mk, res = future.result()
+                results[mk] = res
+                label = labels[order.index(mk)]
+                spinners[label].empty()
+                with containers[label]:
+                    if res.error:
+                        st.error(f"❌ {res.error}")
+                    else:
+                        free_part, paid_part = split_sections(res.text)
+                        st.markdown(free_part)
+                        if paid_part:
+                            with st.expander("유료 영역 펼치기"):
+                                st.markdown(paid_part)
+                        st.caption(res.cost_label())
+                        with st.expander("전체 텍스트 복사"):
+                            st.code(res.text, language=None)
+
+        st.session_state.results = results
+        render_eval_form(labels, tier_key=tier_key, category=category_key, topic=topic,
+                         temperature=temperature, order=order, tier=active_tier, results=results)
+        st.stop()
+
+    # ── 출력 & 평가/결과 (평가 제출 후 rerun) ────────────────────────────
     if not st.session_state.ran:
         return
 
