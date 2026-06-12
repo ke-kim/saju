@@ -31,13 +31,13 @@ TIERS: dict[str, dict] = {
         "label": "저가형 — 오늘의 운세 / 무료 챗봇",
         "claude": {"id": "claude-haiku-4-5-20251001", "name": "Claude Haiku 4.5",  "price_in": 1.00, "price_out":  5.00},
         "gemini": {"id": "gemini-3.5-flash",             "name": "Gemini 3.5 Flash",  "price_in": 0.10, "price_out":  0.40},
-        "gpt":    {"id": "gpt-4o-mini",                "name": "GPT-4o mini",        "price_in": 0.15, "price_out":  0.60},
+        "gpt":    {"id": "gpt-5.4-mini",               "name": "GPT-5.4 mini",       "price_in": 0.75, "price_out":  4.50},
     },
     "고가형": {
         "label": "고가형 — 유료 심화 리포트",
         "claude": {"id": "claude-sonnet-4-6",      "name": "Claude Sonnet 4.6", "price_in":  3.00, "price_out": 15.00},
         "gemini": {"id": "gemini-3.1-pro-preview", "name": "Gemini 3.1 Pro",    "price_in":  1.25, "price_out":  5.00},
-        "gpt":    {"id": "gpt-4o",                 "name": "GPT-4o",            "price_in":  2.50, "price_out": 10.00},
+        "gpt":    {"id": "gpt-5.5",                "name": "GPT-5.5",           "price_in":  5.00, "price_out": 30.00},
     },
 }
 
